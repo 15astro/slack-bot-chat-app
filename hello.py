@@ -2,6 +2,7 @@ from flask import Flask
 import random
 import requests
 import json
+from flask import request
 
 from datetime import datetime, timedelta
 import logging
@@ -17,6 +18,7 @@ app = Flask(__name__)
 def hello_world():
     return "<p>Hello, World!</p>"
 
+
 @app.route('/test')
 def fact_about_space():
 
@@ -24,6 +26,22 @@ def fact_about_space():
     requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={"text": ran})
 
     return str(ran)
+
+@app.route("/entrypoint" ,methods=['POST'])
+def slash_entrypoint():
+    slash_command_data=request.get_json()
+    print(slash_command_data)
+    if 'text' in slash_command_data:
+        text_command = slash_command_data['text']
+        text_splits = text_command.split()
+        for split in text_splits:
+          print(split)
+        
+        return "Some function will be called here"
+
+    else:   
+        empty_greetings = "What's Up, "+slash_command_data['userName'].split()[0]
+        return empty_greetings
 
 
 @app.route('/rds')
