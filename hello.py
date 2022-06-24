@@ -34,7 +34,7 @@ def fact_about_rds():
     requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(iam_response)})
     return str(iam_response)
 
-@app.route('/cpu')
+@app.route('/cpu' ,methods=['POST'])
 def get_cpu_stats():
     cloudwatch = boto3.client('cloudwatch')
     response = cloudwatch.get_metric_data(
@@ -59,7 +59,7 @@ def get_cpu_stats():
     StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
     EndTime=datetime.now().timestamp()
 )
-
+    requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return str(response)
 
 
@@ -88,7 +88,5 @@ def get_connection_stats():
     StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
     EndTime=datetime.now().timestamp()
 )
-
+    requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return str(response)
-
-
