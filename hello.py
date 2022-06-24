@@ -34,4 +34,61 @@ def fact_about_rds():
     requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(iam_response)})
     return str(iam_response)
 
+@app.route('/cpu')
+def get_cpu_stats():
+    cloudwatch = boto3.client('cloudwatch')
+    response = cloudwatch.get_metric_data(
+    MetricDataQueries=[
+        {
+            'Id': 'cpu_usage',
+            'MetricStat': {
+            'Metric': {
+                'Namespace': 'AWS/RDS',
+                'MetricName': 'CPUUtilization',
+                'Dimensions': [
+                        {
+                            "Name": "DBInstanceIdentifier",
+                          "Value": "rds-test"  
+                        }]
+            },
+            'Period': 1800,
+            'Stat': 'Maximum',
+            }
+        }
+    ],
+    StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
+    EndTime=datetime.now().timestamp()
+)
+
+    return str(response)
+
+
+@app.route('/connections')
+def get_connection_stats():
+    cloudwatch = boto3.client('cloudwatch')
+    response = cloudwatch.get_metric_data(
+    MetricDataQueries=[
+        {
+            'Id': 'max_connection_stats',
+            'MetricStat': {
+            'Metric': {
+                'Namespace': 'AWS/RDS',
+                'MetricName': 'DatabaseConnections',
+                'Dimensions': [
+                        {
+                            "Name": "DBInstanceIdentifier",
+                          "Value": "rds-test"
+                        }]
+            },
+            'Period': 1800,
+            'Stat': 'Maximum',
+            }
+        }
+    ],
+    StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
+    EndTime=datetime.now().timestamp()
+)
+
+    return str(response)
+
 
