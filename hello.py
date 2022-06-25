@@ -107,6 +107,13 @@ def slash_entrypoint():
            if resource_identifier not in ['rds-preprod', 'rds-prod']:
                return str({ "text": "Are you sure that's a valid RDS db name?"})
 
+       if 'bye' in slash_command_data['text']:
+           empty_bye_messsages = ["See you later, ", "Bye!, ", "Enjoy your time, ", "Have some rest now, ", "I'll be here to help you, ", "Cheers!, " ]
+           messsage_index=random.randint(0,len(empty_bye_messsages)-1)
+           bye_greetings = empty_bye_messsages[messsage_index]+slash_command_data['userName'].split()[0]
+           requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": bye_greetings, "mentions": ['u:udpdepe5pttkt7e7']})
+           return { "text": None}
+
 
        if 'all' in slash_command_data['text']:
            all_responses = []
