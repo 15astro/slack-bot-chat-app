@@ -32,13 +32,10 @@ def slash_entrypoint():
     namespace = 'AWS/RDS'
     metric_name = 'DatabaseConnections'
     aggregate_function = "Maximum"
+    resorce_identifier = "rds-test"
     slash_command_data=request.get_json()
     print(slash_command_data)
     if 'text' in slash_command_data:
-       # text_command = slash_command_data['text']
-       # text_splits = text_command.split()
-       # for split in text_splits:
-       #   print(split)
        if 'rds' in slash_command_data['text']:
            namespace = 'AWS/RDS'
 
@@ -98,11 +95,13 @@ def slash_entrypoint():
        print("Response returned by RDS:", rds_stats_response)
        print("Type of response by RDS:", type(rds_stats_response))
        cloudwatch_custom_response = {rds_stats_response['MetricDataResults'][0]['Label']: rds_stats_response['MetricDataResults'][0]['Values'][0]}
-       requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(cloudwatch_custom_response)})
+       cloudwatch_user_friendly_response = aggregate_function+" "+namespace+" "+metric_name+" for "+resorce_identifier+" is "+ str(rds_stats_response['MetricDataResults'][0]['Values'][0])+" :) "
+
+       requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": cloudwatch_user_friendly_response})
        return {"text":rds_stats_response}
 
     else:  
-        empty_greeting_messsages = ["What's Up", "Hello,", "Howdy,", "How are you doing today,", "How can I help,", "Never thought you'd come back so soon," ]
+        empty_greeting_messsages = ["What's Up, ", "Hello, ", "Howdy, ", "How are you doing today, ", "How can I help, ", "Never thought you'd come back so soon, " ]
         messsage_index=random.randint(0,len(empty_greeting_messsages)-1)
         empty_greetings = empty_greeting_messsages[messsage_index]+slash_command_data['userName'].split()[0]
         return str({ "text": empty_greetings})
