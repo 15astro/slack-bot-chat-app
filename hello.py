@@ -89,22 +89,33 @@ def slash_entrypoint():
        if 'count' in slash_command_data['text']:
            aggregate_function = 'Count'
 
+       if 'all' in slash_command_data['text']:
+           all_responses = []
+           all_metrics = ['CPUUtilization', 'FreeableMemory', 'DatabaseConnections', 'FreeStorageSpace', 'ReadLatency', 'WriteLatency', 'ReadIOPS', 'WriteIOPS', 'ReadThroughput', 'WriteThroughput', 'DiskQueueDepth']
+           for metric in all_metrics:
+             current_response = get_rd_stats(namespace, metric, period, aggregate_function)
+             current_user_friendly_response = aggregate_function+" "+namespace+" "+metric+" for "+resorce_identifier+" is "+ str(round(current_response['MetricDataResults'][0]['Values'][0],2))
+             requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": current_user_friendly_response})
+           return str({ "text": None})
+             #all_responses.append(current_user_friendly_response)
+
 
        rds_stats_response = get_rd_stats(namespace, metric_name, period, aggregate_function)
        print("Params passed to RDS:", namespace, metric_name, period, aggregate_function)
        print("Response returned by RDS:", rds_stats_response)
        print("Type of response by RDS:", type(rds_stats_response))
        cloudwatch_custom_response = {rds_stats_response['MetricDataResults'][0]['Label']: rds_stats_response['MetricDataResults'][0]['Values'][0]}
-       cloudwatch_user_friendly_response = aggregate_function+" "+namespace+" "+metric_name+" for "+resorce_identifier+" is "+ str(rds_stats_response['MetricDataResults'][0]['Values'][0])+" :) "
+       cloudwatch_user_friendly_response = aggregate_function+" "+namespace+" "+metric_name+" for "+resorce_identifier+" is "+ str(round(rds_stats_response['MetricDataResults'][0]['Values'][0],2))
 
        requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": cloudwatch_user_friendly_response})
-       return {"text":rds_stats_response}
+       return {"text":None}
 
     else:  
-        empty_greeting_messsages = ["What's Up, ", "Hello, ", "Howdy, ", "How are you doing today, ", "How can I help, ", "Never thought you'd come back so soon, " ]
+        empty_greeting_messsages = ["What's Up?, ", "Hello!, ", "Howdy?, ", "How are you doing today?, ", "How can I help?, ", "Never thought you'd come back so soon, " ]
         messsage_index=random.randint(0,len(empty_greeting_messsages)-1)
         empty_greetings = empty_greeting_messsages[messsage_index]+slash_command_data['userName'].split()[0]
-        return str({ "text": empty_greetings})
+        requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": empty_greetings})
+        return { "text": None}
 
 
 @app.route('/rds')
@@ -143,3 +154,5 @@ def get_rd_stats(namespace, metric_name, period, aggregate_function):
 )
     #requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return response
+
+
