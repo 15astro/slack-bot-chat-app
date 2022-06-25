@@ -12,20 +12,33 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
+#Import matplotlib as mpl
+#Import matplotlib.pyplot as plt
+#Import numpy as np
+#From flask import Response
+#
+#From matplotlib import pylab
+#From pylab import *
+
 app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    """    fig, ax = plt.subplots()  # Create a figure containing a single axes.
+    plot = ax.plot([1, 2, 3, 4], [1, 4, 2, 3]);  # Plot some data on the axes.
+    return {"result": plot }
+    response = Response(plot, mimetype="image/png")
+    create your image as usual, e.g. pylab.plot(...)
+    pylab.savefig(response, format="png") """
+    return {"message": "Success"}
 
-
-@app.route('/test')
+@app.route('/test', methods=['POST'])
 def fact_about_space():
 
     ran=random.randint(1,70)
     requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={"text": ran})
 
-    return str(ran)
+    return { "text": str(ran)}
 
 @app.route("/entrypoint" ,methods=['POST'])
 def slash_entrypoint():
@@ -114,7 +127,7 @@ def slash_entrypoint():
         empty_greeting_messsages = ["What's Up?, ", "Hello!, ", "Howdy?, ", "How are you doing today?, ", "How can I help?, ", "Never thought you'd come back so soon, " ]
         messsage_index=random.randint(0,len(empty_greeting_messsages)-1)
         empty_greetings = empty_greeting_messsages[messsage_index]+slash_command_data['userName'].split()[0]
-        requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": empty_greetings})
+        requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": empty_greetings, "mentions": ['u:udpdepe5pttkt7e7']})
         return { "text": None}
 
 
