@@ -29,19 +29,63 @@ def fact_about_space():
 
 @app.route("/entrypoint" ,methods=['POST'])
 def slash_entrypoint():
+    namespace = 'AWS/RDS'
+    metric_name = 'DatabaseConnections'
     slash_command_data=request.get_json()
     print(slash_command_data)
     if 'text' in slash_command_data:
-        text_command = slash_command_data['text']
-        text_splits = text_command.split()
-        for split in text_splits:
-          print(split)
+       # text_command = slash_command_data['text']
+       # text_splits = text_command.split()
+       # for split in text_splits:
+       #   print(split)
+       if 'rds' in slash_command_data['text']:
+           namespace = 'AWS/RDS'
+
+       if 'cpu' in slash_command_data['text']:
+           metric_name = 'CPUUtilization'
+
+       if 'memory' in slash_command_data['text']:
+           metric_name = 'FreeableMemory'
+
+       if 'connections' in slash_command_data['text']:
+           metric_name = 'DatabaseConnections'
+
+       if 'space' in slash_command_data['text']:
+           metric_name = 'FreeStorageSpace'
+
+       if 'read latency' in slash_command_data['text']:
+           metric_name = 'ReadLatency'
+
+       if 'write latency' in slash_command_data['text']:
+           metric_name = 'WriteLatency'
         
-        return "Some function will be called here"
+       if 'read iops' in slash_command_data['text']:
+           metric_name = 'ReadIOPS'
+
+       if 'write iops' in slash_command_data['text']:
+           metric_name = 'WriteIOPS'
+
+       if 'read throughput' in slash_command_data['text']:
+           metric_name = 'ReadThroughput'
+
+       if 'write throughput' in slash_command_data['text']:
+           metric_name = 'WriteThroughput'    
+
+       if 'disk queue' in slash_command_data['text']:
+           metric_name = 'DiskQueueDepth'  
+
+       if 'mins' in slash_command_data['text'] or 'minutes' in slash_command_data['text']:
+           period = int(slash_command_data['text'].split()[-2])*60
+       else:
+           period = 300
+
+       rds_stats_response = get_rd_stats(namespace, metric_name, period)
+       requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(rds_stats_response)})
+       return {"text":rds_stats_response}
 
     else:   
         empty_greetings = "What's Up, "+slash_command_data['userName'].split()[0]
-        return empty_greetings
+        return str({ "text": empty_greetings})
 
 
 @app.route('/rds')
@@ -52,53 +96,24 @@ def fact_about_rds():
     requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(iam_response)})
     return str(iam_response)
 
-@app.route('/cpu' ,methods=['POST'])
-def get_cpu_stats():
+
+def get_rd_stats(namespace, metric_name, period):
     cloudwatch = boto3.client('cloudwatch')
     response = cloudwatch.get_metric_data(
     MetricDataQueries=[
         {
-            'Id': 'cpu_usage',
+            'Id': 'cloudwatch_metrics',
             'MetricStat': {
             'Metric': {
-                'Namespace': 'AWS/RDS',
-                'MetricName': 'CPUUtilization',
-                'Dimensions': [
-                        {
-                            "Name": "DBInstanceIdentifier",
-                          "Value": "rds-test"  
-                        }]
-            },
-            'Period': 1800,
-            'Stat': 'Maximum',
-            }
-        }
-    ],
-    StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
-    EndTime=datetime.now().timestamp()
-)
-    requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
-    return str(response)
-
-
-@app.route('/connections')
-def get_connection_stats():
-    cloudwatch = boto3.client('cloudwatch')
-    response = cloudwatch.get_metric_data(
-    MetricDataQueries=[
-        {
-            'Id': 'max_connection_stats',
-            'MetricStat': {
-            'Metric': {
-                'Namespace': 'AWS/RDS',
-                'MetricName': 'DatabaseConnections',
+                'Namespace': namespace,
+                'MetricName': metric_name,
                 'Dimensions': [
                         {
                             "Name": "DBInstanceIdentifier",
                           "Value": "rds-test"
                         }]
             },
-            'Period': 1800,
+            'Period': period,
             'Stat': 'Maximum',
             }
         }
@@ -106,5 +121,7 @@ def get_connection_stats():
     StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
     EndTime=datetime.now().timestamp()
 )
-    requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
+    #requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return str(response)
+
+
