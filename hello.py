@@ -31,6 +31,7 @@ def fact_about_space():
 def slash_entrypoint():
     namespace = 'AWS/RDS'
     metric_name = 'DatabaseConnections'
+    aggregate_function = "Maximum"
     slash_command_data=request.get_json()
     print(slash_command_data)
     if 'text' in slash_command_data:
@@ -74,17 +75,36 @@ def slash_entrypoint():
        if 'disk queue' in slash_command_data['text']:
            metric_name = 'DiskQueueDepth'  
 
-       if 'mins' in slash_command_data['text'] or 'minutes' in slash_command_data['text']:
+       if 'minutes' in slash_command_data['text']:
            period = int(slash_command_data['text'].split()[-2])*60
        else:
            period = 300
 
-       rds_stats_response = get_rd_stats(namespace, metric_name, period)
-       requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(rds_stats_response)})
+       if 'max' in slash_command_data['text']:
+           aggregate_function = 'Maximum'
+
+       if 'min' in slash_command_data['text'].split():
+           aggregate_function = 'Minimum'
+         
+       if 'avg' in slash_command_data['text']:
+           aggregate_function = 'Average'
+
+       if 'count' in slash_command_data['text']:
+           aggregate_function = 'Count'
+
+
+       rds_stats_response = get_rd_stats(namespace, metric_name, period, aggregate_function)
+       print("Params passed to RDS:", namespace, metric_name, period, aggregate_function)
+       print("Response returned by RDS:", rds_stats_response)
+       print("Type of response by RDS:", type(rds_stats_response))
+       cloudwatch_custom_response = {rds_stats_response['MetricDataResults'][0]['Label']: rds_stats_response['MetricDataResults'][0]['Values'][0]}
+       requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(cloudwatch_custom_response)})
        return {"text":rds_stats_response}
 
-    else:   
-        empty_greetings = "What's Up, "+slash_command_data['userName'].split()[0]
+    else:  
+        empty_greeting_messsages = ["What's Up", "Hello,", "Howdy,", "How are you doing today,", "How can I help,", "Never thought you'd come back so soon," ]
+        messsage_index=random.randint(0,len(empty_greeting_messsages)-1)
+        empty_greetings = empty_greeting_messsages[messsage_index]+slash_command_data['userName'].split()[0]
         return str({ "text": empty_greetings})
 
 
@@ -97,7 +117,8 @@ def fact_about_rds():
     return str(iam_response)
 
 
-def get_rd_stats(namespace, metric_name, period):
+def get_rd_stats(namespace, metric_name, period, aggregate_function):
+    print("This is what received in get_rd_stats function:", namespace, metric_name, period, aggregate_function)
     cloudwatch = boto3.client('cloudwatch')
     response = cloudwatch.get_metric_data(
     MetricDataQueries=[
@@ -114,7 +135,7 @@ def get_rd_stats(namespace, metric_name, period):
                         }]
             },
             'Period': period,
-            'Stat': 'Maximum',
+            'Stat': aggregate_function,
             }
         }
     ],
@@ -122,6 +143,4 @@ def get_rd_stats(namespace, metric_name, period):
     EndTime=datetime.now().timestamp()
 )
     #requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
-    return str(response)
-
-
+    return response
