@@ -45,7 +45,7 @@ def slash_entrypoint():
     namespace = 'AWS/RDS'
     metric_name = 'DatabaseConnections'
     aggregate_function = "Maximum"
-    resorce_identifier = "rds-test"
+    resource_identifier = "rds-preprod"
     slash_command_data=request.get_json()
     print(slash_command_data)
     if 'text' in slash_command_data:
@@ -102,23 +102,29 @@ def slash_entrypoint():
        if 'count' in slash_command_data['text']:
            aggregate_function = 'Count'
 
+       if 'rds' in slash_command_data['text']:
+           resource_identifier = slash_command_data['text'].split()[0]
+           if resource_identifier not in ['rds-preprod', 'rds-prod']:
+               return str({ "text": "Are you sure that's a valid RDS db name?"})
+
+
        if 'all' in slash_command_data['text']:
            all_responses = []
            all_metrics = ['CPUUtilization', 'FreeableMemory', 'DatabaseConnections', 'FreeStorageSpace', 'ReadLatency', 'WriteLatency', 'ReadIOPS', 'WriteIOPS', 'ReadThroughput', 'WriteThroughput', 'DiskQueueDepth']
            for metric in all_metrics:
-             current_response = get_rd_stats(namespace, metric, period, aggregate_function)
-             current_user_friendly_response = aggregate_function+" "+namespace+" "+metric+" for "+resorce_identifier+" is "+ str(round(current_response['MetricDataResults'][0]['Values'][0],2))
+             current_response = get_rd_stats(namespace, metric,resource_identifier  ,period, aggregate_function)
+             current_user_friendly_response = aggregate_function+" "+namespace+" "+metric+" for *"+resource_identifier+"* is *"+ str(round(current_response['MetricDataResults'][0]['Values'][0],2))+"*"
              requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": current_user_friendly_response})
            return str({ "text": None})
              #all_responses.append(current_user_friendly_response)
 
 
-       rds_stats_response = get_rd_stats(namespace, metric_name, period, aggregate_function)
-       print("Params passed to RDS:", namespace, metric_name, period, aggregate_function)
+       rds_stats_response = get_rd_stats(namespace, metric_name, resource_identifier, period, aggregate_function)
+       print("Params passed to RDS:", namespace, metric_name, resource_identifier  ,period, aggregate_function)
        print("Response returned by RDS:", rds_stats_response)
        print("Type of response by RDS:", type(rds_stats_response))
        cloudwatch_custom_response = {rds_stats_response['MetricDataResults'][0]['Label']: rds_stats_response['MetricDataResults'][0]['Values'][0]}
-       cloudwatch_user_friendly_response = aggregate_function+" "+namespace+" "+metric_name+" for "+resorce_identifier+" is "+ str(round(rds_stats_response['MetricDataResults'][0]['Values'][0],2))
+       cloudwatch_user_friendly_response = aggregate_function+" "+namespace+" "+metric_name+" for *"+resource_identifier+"* is *"+ str(round(rds_stats_response['MetricDataResults'][0]['Values'][0],2))+"*"
 
        requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": cloudwatch_user_friendly_response})
        return {"text":None}
@@ -140,8 +146,8 @@ def fact_about_rds():
     return str(iam_response)
 
 
-def get_rd_stats(namespace, metric_name, period, aggregate_function):
-    print("This is what received in get_rd_stats function:", namespace, metric_name, period, aggregate_function)
+def get_rd_stats(namespace, metric_name, resource_identifier, period, aggregate_function):
+    print("This is what received in get_rd_stats function:", namespace, metric_name, resource_identifier, period, aggregate_function)
     cloudwatch = boto3.client('cloudwatch')
     response = cloudwatch.get_metric_data(
     MetricDataQueries=[
@@ -154,7 +160,7 @@ def get_rd_stats(namespace, metric_name, period, aggregate_function):
                 'Dimensions': [
                         {
                             "Name": "DBInstanceIdentifier",
-                          "Value": "rds-test"
+                          "Value": resource_identifier
                         }]
             },
             'Period': period,
@@ -167,5 +173,3 @@ def get_rd_stats(namespace, metric_name, period, aggregate_function):
 )
     #requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return response
-
-
