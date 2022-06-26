@@ -172,14 +172,14 @@ def get_rd_stats(namespace, metric_name, resource_identifier, period, aggregate_
     #requests.post('https://api.flock.com/hooks/sendMessage/602bd051-e3cc-4fd4-8bd0-7e8a5fa9dd5d', json={ "text": str(response)})
     return response
 
-@app.route("/entrypoint" ,methods=['POST'])
+@app.route("/entrypoint_es" ,methods=['POST'])
 def slash_entrypoint_es():
     #requests.post('https://api.flock.com/hooks/sendMessage/72016acb-63f8-46c9-be20-8a8e37c0697b', json={ "text": "Welcome to Elastic!"})
     #return { "text": "None"}
     namespace = 'AWS/ES'
     metric_name = 'ClusterStatus.green'
     aggregate_function = "Maximum"
-    resource_identifier = "elastic-test"
+    resource_identifier = "elastic-prod"
     slash_command_data=request.get_json()
     print(slash_command_data)
     if 'text' in slash_command_data:
@@ -197,9 +197,6 @@ def slash_entrypoint_es():
 
        if 'memory' in slash_command_data['text']:
            metric_name = 'SysMemoryUtilization'
-
-       if 'connections' in slash_command_data['text']:
-           metric_name = 'CrossClusterOutboundConnections'
 
        if 'space' in slash_command_data['text']:
            metric_name = 'FreeStorageSpace'
@@ -235,7 +232,7 @@ def slash_entrypoint_es():
 
        if 'elastic' in slash_command_data['text']:
            resource_identifier = slash_command_data['text'].split()[0]
-           if resource_identifier not in ['elastic-test']:
+           if resource_identifier not in ['elastic-prod']:
                return str({ "text": "Are you sure that's a valid Elastic domain name?"})
 
        if 'bye' in slash_command_data['text']:
@@ -248,7 +245,7 @@ def slash_entrypoint_es():
 
        if 'all' in slash_command_data['text']:
            all_responses = []
-           all_es_metrics = ['CPUUtilization', 'ClusterStatus.green', 'Nodes', 'SysMemoryUtilization', 'CrossClusterOutboundConnections', 'FreeStorageSpace', 'IndexingLatency', 'SearchLatency', 'IndexingRate', 'SearchRate']
+           all_es_metrics = ['CPUUtilization', 'ClusterStatus.green', 'Nodes', 'SysMemoryUtilization', 'FreeStorageSpace', 'IndexingLatency', 'SearchLatency', 'IndexingRate', 'SearchRate']
            for metric in all_es_metrics:
              current_response = get_es_stats(namespace, metric,resource_identifier  ,period, aggregate_function)
              current_user_friendly_response = aggregate_function+" "+namespace+" "+metric+" for *"+resource_identifier+"* is *"+ str(round(current_response['MetricDataResults'][0]['Values'][0],2))+"*"
@@ -259,8 +256,6 @@ def slash_entrypoint_es():
 
        es_stats_response = get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_function)
        print("Params passed to ES:", namespace, metric_name, resource_identifier  ,period, aggregate_function)
-       es_stats_response = get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_function)
-       es_stats_response = get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_function)
        print("Response returned by ES:", es_stats_response)
        print("Type of response by ES:", type(es_stats_response))
        cloudwatch_custom_response = {es_stats_response['MetricDataResults'][0]['Label']: es_stats_response['MetricDataResults'][0]['Values'][0]}
@@ -281,7 +276,8 @@ def slash_entrypoint_es():
 
 def get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_function):
     print("This is what received in get_es_stats function:", namespace, metric_name, resource_identifier, period, aggregate_function)
-    cloudwatch = boto3.client('es')
+    cloudwatch = boto3.client('cloudwatch')
+    print("Cloudwatch Elastic Object:", cloudwatch)
     response = cloudwatch.get_metric_data(
     MetricDataQueries=[
         {
@@ -294,7 +290,12 @@ def get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_
                         {
                             "Name": "DomainName",
                             "Value": resource_identifier
-                        }]
+                        },
+                        {
+                            "Name": "ClientId",
+                            "Value": "563720652053"
+                        }
+               ]
             },
             'Period': period,
             'Stat': aggregate_function,
@@ -303,7 +304,8 @@ def get_es_stats(namespace, metric_name, resource_identifier, period, aggregate_
     ],
     StartTime=(datetime.now() - timedelta(seconds=300 * 3)).timestamp(),
     EndTime=datetime.now().timestamp()
-)
+)   
+    #print(response)
     #requests.post('https://api.flock.com/hooks/sendMessage/72016acb-63f8-46c9-be20-8a8e37c0697b', json={ "text": str(response)})
     return response
 
